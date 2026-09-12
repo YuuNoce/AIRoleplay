@@ -1,0 +1,28 @@
+[
+  {
+    "Author": "YuuNoce",
+    "Name": "AIRoleplay",
+    "InternalName": "AIRoleplay",
+    "AssemblyVersion": "1.0.0.0",
+    "Description": "AIRoleplay helps draft in-character game chat replies using recent chat context and a configurable character prompt.\n\nCommands:\n/airp - Open AIRoleplay.\n/airp [message] - Generate in the selected mode.\n/airp r [name] [instruction] - Switch to reply assist and draft a reply.\n/airp status - Show the current mode and auto response settings.\n/airp help - Show this command list.",
+    "ApplicableVersion": "any",
+    "RepoUrl": "https://github.com/YuuNoce/AIRoleplay",
+    "Tags": [
+      "ai",
+      "roleplay",
+      "chat"
+    ],
+    "DalamudApiLevel": 15,
+    "LoadRequiredState": 0,
+    "LoadSync": false,
+    "CanUnloadAsync": false,
+    "LoadPriority": 0,
+    "IconUrl": "https://raw.githubusercontent.com/YuuNoce/AIRoleplay/master/Data/airoleplayicon.png",
+    "Punchline": "Roleplay chat assistance powered by AI.",
+    "AcceptsFeedback": true,
+    "IsHide": false,
+    "IsTestingExclusive": false,
+    "DownloadLinkInstall": "https://github.com/YuuNoce/AIRoleplay/releases/download/v1.0.0.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/YuuNoce/AIRoleplay/releases/download/v1.0.0.0/latest.zip"
+  }
+]

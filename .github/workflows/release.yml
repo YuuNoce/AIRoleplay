@@ -1,0 +1,69 @@
+name: AIRoleplay Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Download Dalamud
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+        Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+
+    - name: Build release package
+      shell: pwsh
+      run: dotnet build .\AIRoleplay\AIRoleplay.csproj --configuration Release -p:Platform=x64
+
+    - name: Validate package metadata
+      shell: pwsh
+      run: |
+        $tagVersion = "${{ github.ref_name }}".TrimStart("v")
+        $packageDirectory = ".\AIRoleplay\bin\x64\Release\AIRoleplay"
+        $manifest = Get-Content -Raw -LiteralPath "$packageDirectory\AIRoleplay.json" | ConvertFrom-Json
+        $repository = Get-Content -Raw -LiteralPath ".\repo.json" | ConvertFrom-Json
+        $storeEntry = @($repository)[0]
+        $expectedDownloadUrl = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/latest.zip"
+
+        if ($manifest.AssemblyVersion -ne $tagVersion) {
+          throw "Tag version $tagVersion does not match plugin version $($manifest.AssemblyVersion)."
+        }
+        if ($storeEntry.AssemblyVersion -ne $tagVersion) {
+          throw "Tag version $tagVersion does not match repo.json version $($storeEntry.AssemblyVersion)."
+        }
+        if ($storeEntry.DownloadLinkInstall -ne $expectedDownloadUrl -or
+            $storeEntry.DownloadLinkUpdate -ne $expectedDownloadUrl) {
+          throw "repo.json download URLs do not match $expectedDownloadUrl."
+        }
+        if ($manifest.InternalName -ne "AIRoleplay" -or $manifest.Author -ne "YuuNoce") {
+          throw "Generated plugin manifest has unexpected identity metadata."
+        }
+        if (-not (Test-Path -LiteralPath "$packageDirectory\latest.zip")) {
+          throw "latest.zip was not generated."
+        }
+
+    - name: Publish GitHub Release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "${{ github.ref_name }}" `
+          ".\AIRoleplay\bin\x64\Release\AIRoleplay\latest.zip" `
+          --title "AIRoleplay ${{ github.ref_name }}" `
+          --generate-notes

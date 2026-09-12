@@ -1,0 +1,16 @@
+.vs/
+obj/
+bin/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+TestResults/
+*.log
+Thumbs.db
+.DS_Store

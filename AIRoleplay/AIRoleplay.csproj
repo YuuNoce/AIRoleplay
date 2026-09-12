@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <Version>1.0.0.0</Version>
+    <!-- Manifest fields (see https://github.com/goatcorp/DalamudPackager/blob/827d88dc/DalamudPackager/DalamudPackager.cs#L420) -->
+    <Author>YuuNoce</Author>
+    <Name>AIRoleplay</Name>
+    <Punchline>Roleplay chat assistance powered by AI.</Punchline>
+    <Description>AIRoleplay helps draft in-character game chat replies using recent chat context and a configurable character prompt.
+
+Commands:
+/airp - Open AIRoleplay.
+/airp [message] - Generate in the selected mode.
+/airp r [name] [instruction] - Switch to reply assist and draft a reply.
+/airp status - Show the current mode and auto response settings.
+/airp help - Show this command list.</Description>
+    <RepoUrl>https://github.com/YuuNoce/AIRoleplay</RepoUrl>
+    <IconUrl>https://raw.githubusercontent.com/YuuNoce/AIRoleplay/master/Data/airoleplayicon.png</IconUrl>
+    <Tags>ai;roleplay;chat</Tags>
+  </PropertyGroup>
+</Project>
