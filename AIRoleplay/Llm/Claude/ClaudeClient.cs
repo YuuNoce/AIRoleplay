@@ -54,7 +54,8 @@ public sealed class ClaudeClient : ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512)
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false)
     {
         var apiKey = ReadApiKey();
         var system = string.Join("\n\n", messages.Where(message => message.Role == "system").Select(message => message.Content));

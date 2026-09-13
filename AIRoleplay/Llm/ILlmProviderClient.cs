@@ -14,5 +14,6 @@ public interface ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512);
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false);
 }

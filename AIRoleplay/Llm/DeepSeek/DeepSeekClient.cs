@@ -57,10 +57,16 @@ public sealed class DeepSeekClient : ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512)
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false)
     {
         var apiKey = ReadApiKey();
-        var requestBody = new DeepSeekChatRequest(modelId, messages, false, maxOutputTokens);
+        var requestBody = new DeepSeekChatRequest(
+            modelId,
+            messages,
+            false,
+            requireJsonObject ? new DeepSeekResponseFormat("json_object") : null,
+            maxOutputTokens);
         var json = JsonSerializer.Serialize(requestBody, LlmJson.Options);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/chat/completions");
@@ -125,7 +131,11 @@ public sealed class DeepSeekClient : ILlmProviderClient
         [property: JsonPropertyName("model")] string Model,
         [property: JsonPropertyName("messages")] IReadOnlyList<LlmChatMessage> Messages,
         [property: JsonPropertyName("stream")] bool Stream,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [property: JsonPropertyName("response_format")] DeepSeekResponseFormat? ResponseFormat,
         [property: JsonPropertyName("max_tokens")] int MaxTokens);
+
+    private sealed record DeepSeekResponseFormat([property: JsonPropertyName("type")] string Type);
 
     private sealed record DeepSeekChatResponse(
         [property: JsonPropertyName("id")] string? Id,

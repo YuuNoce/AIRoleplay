@@ -570,9 +570,7 @@ public class MainWindow : Window, IDisposable
         modelConfiguration.SetModelSlots(configuration.GetEnabledModelSlots());
         var localChat = printToChat ?? configuration.ShowAiResponseInLocalChat;
         var assistantName = configuration.GetLimitedAssistantDisplayName();
-        Func<string, bool>? contentValidator = useConversationSummary
-            ? content => ReplyWithSummaryParser.TryParse(content, out _)
-            : null;
+        Func<string, bool> contentValidator = content => ReplyWithSummaryParser.TryParse(content, out _);
         plugin.AIRoleplayLogger.Log(destination, logUserInput ? "INPUT" : "TRIGGER", logUserInput ? text : triggerReason ?? text);
         plugin.AIRoleplayLogger.LogPrompt(destination, messages);
         if (IsPublicMode)
@@ -597,16 +595,12 @@ public class MainWindow : Window, IDisposable
                     useConversationSummary ? ReplyWithSummaryParser.SummaryResponseMaxOutputTokens : 512,
                     contentValidator);
                 var content = result.Content ?? "";
-                var updatedSummary = "";
-                if (useConversationSummary)
-                {
-                    if (!ReplyWithSummaryParser.TryParse(content, out var replyWithSummary))
-                        throw new InvalidOperationException(T(
-                            "The LLM did not return a valid reply/summary JSON object. Nothing was displayed or sent.",
-                            "LLMが有効な発言・要約JSONを返しませんでした。表示・送信は行っていません。"));
-                    content = replyWithSummary.Reply;
-                    updatedSummary = replyWithSummary.Summary;
-                }
+                if (!ReplyWithSummaryParser.TryParse(content, out var replyWithSummary))
+                    throw new InvalidOperationException(T(
+                        "The LLM did not return a valid reply JSON object. Nothing was displayed or sent.",
+                        "LLMが有効な発言JSONを返しませんでした。表示・送信は行っていません。"));
+                content = replyWithSummary.Reply;
+                var updatedSummary = useConversationSummary ? replyWithSummary.Summary : "";
                 completions.Enqueue(() =>
                 {
                     if (disposed || requestGeneration != generation || cts.IsCancellationRequested) return;

@@ -67,13 +67,15 @@ public sealed class LlmFallbackClient : IDisposable
         var result = await client.CreateChatCompletionAsync(
             modelId.Trim(),
             [
-                new LlmChatMessage("system", "Reply with OK only."),
+                new LlmChatMessage("system", "Return only this JSON object: {\"reply\":\"OK\",\"summary\":\"\"}."),
                 new LlmChatMessage("user", "Hi"),
             ],
-            cancellationToken);
-        if (string.IsNullOrWhiteSpace(result.Content))
+            cancellationToken,
+            requireJsonObject: true);
+        if (!ReplyWithSummaryParser.TryParse(result.Content, out var parsed) ||
+            !string.Equals(parsed.Reply, "OK", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"{provider}/{modelId} returned an empty response.");
+            throw new InvalidOperationException($"{provider}/{modelId} returned an invalid JSON response.");
         }
 
         return result;
@@ -111,7 +113,8 @@ public sealed class LlmFallbackClient : IDisposable
             try
             {
                 var result = await client.CreateChatCompletionAsync(
-                    slot.ModelId, messages, cancellationToken, maxOutputTokens);
+                    slot.ModelId, messages, cancellationToken, maxOutputTokens,
+                    requireJsonObject: contentValidator != null);
                 cancellationToken.ThrowIfCancellationRequested();
                 onResponse?.Invoke(result.Diagnostics);
                 if (!string.IsNullOrWhiteSpace(result.Content) &&

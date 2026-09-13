@@ -78,10 +78,11 @@ public sealed class GeminiClient : ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512)
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false)
     {
         var apiKey = ReadApiKey();
-        var requestBody = BuildRequestBody(messages, maxOutputTokens);
+        var requestBody = BuildRequestBody(messages, maxOutputTokens, requireJsonObject);
         var json = JsonSerializer.Serialize(requestBody, LlmJson.Options);
 
         using var request = new HttpRequestMessage(
@@ -119,7 +120,10 @@ public sealed class GeminiClient : ILlmProviderClient
                 LlmJson.BuildRedactedResponsePreview(responseText, 800)));
     }
 
-    private static object BuildRequestBody(IReadOnlyList<LlmChatMessage> messages, int maxOutputTokens)
+    private static object BuildRequestBody(
+        IReadOnlyList<LlmChatMessage> messages,
+        int maxOutputTokens,
+        bool requireJsonObject)
     {
         var systemText = string.Join("\n\n", messages
             .Where(message => message.Role == "system")
@@ -138,7 +142,9 @@ public sealed class GeminiClient : ILlmProviderClient
             return new
             {
                 contents,
-                generationConfig = new { maxOutputTokens },
+                generationConfig = new GeminiGenerationConfig(
+                    maxOutputTokens,
+                    requireJsonObject ? "application/json" : null),
             };
         }
 
@@ -146,7 +152,9 @@ public sealed class GeminiClient : ILlmProviderClient
         {
             systemInstruction = new { parts = new[] { new { text = systemText } } },
             contents,
-            generationConfig = new { maxOutputTokens },
+            generationConfig = new GeminiGenerationConfig(
+                maxOutputTokens,
+                requireJsonObject ? "application/json" : null),
         };
     }
 
@@ -211,4 +219,9 @@ public sealed class GeminiClient : ILlmProviderClient
     private sealed record GeminiContent([property: JsonPropertyName("parts")] IReadOnlyList<GeminiPart>? Parts);
 
     private sealed record GeminiPart([property: JsonPropertyName("text")] string? Text);
+
+    private sealed record GeminiGenerationConfig(
+        [property: JsonPropertyName("maxOutputTokens")] int MaxOutputTokens,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [property: JsonPropertyName("responseMimeType")] string? ResponseMimeType);
 }

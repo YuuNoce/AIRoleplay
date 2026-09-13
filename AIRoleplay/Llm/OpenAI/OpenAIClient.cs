@@ -57,10 +57,16 @@ public sealed class OpenAIClient : ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512)
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false)
     {
         var apiKey = ReadApiKey();
-        var requestBody = new OpenAIChatRequest(modelId, messages, false, maxOutputTokens);
+        var requestBody = new OpenAIChatRequest(
+            modelId,
+            messages,
+            false,
+            requireJsonObject ? new OpenAIResponseFormat("json_object") : null,
+            maxOutputTokens);
         var json = JsonSerializer.Serialize(requestBody, LlmJson.Options);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/chat/completions");
@@ -124,7 +130,11 @@ public sealed class OpenAIClient : ILlmProviderClient
         [property: JsonPropertyName("model")] string Model,
         [property: JsonPropertyName("messages")] IReadOnlyList<LlmChatMessage> Messages,
         [property: JsonPropertyName("stream")] bool Stream,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [property: JsonPropertyName("response_format")] OpenAIResponseFormat? ResponseFormat,
         [property: JsonPropertyName("max_completion_tokens")] int MaxTokens);
+
+    private sealed record OpenAIResponseFormat([property: JsonPropertyName("type")] string Type);
 
     private sealed record OpenAIChatResponse(
         [property: JsonPropertyName("id")] string? Id,

@@ -63,17 +63,11 @@ public sealed class ZaiClient : ILlmProviderClient
         string modelId,
         IReadOnlyList<LlmChatMessage> messages,
         CancellationToken cancellationToken = default,
-        int maxOutputTokens = 512)
+        int maxOutputTokens = 512,
+        bool requireJsonObject = false)
     {
         var apiKey = ReadApiKey();
-        var requestBody = new ZaiChatRequest(
-            modelId,
-            messages,
-            new ZaiThinking("disabled"),
-            false,
-            new ZaiResponseFormat("text"),
-            maxOutputTokens);
-        var json = JsonSerializer.Serialize(requestBody, LlmJson.Options);
+        var json = BuildRequestJson(modelId, messages, maxOutputTokens, requireJsonObject);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -108,6 +102,22 @@ public sealed class ZaiClient : ILlmProviderClient
                 string.IsNullOrWhiteSpace(reasoningContent) ? 0 : reasoningContent.Length,
                 zaiResponse?.Usage?.GetRawText(),
                 LlmJson.BuildRedactedResponsePreview(responseText, 800)));
+    }
+
+    internal static string BuildRequestJson(
+        string modelId,
+        IReadOnlyList<LlmChatMessage> messages,
+        int maxOutputTokens,
+        bool requireJsonObject)
+    {
+        var requestBody = new ZaiChatRequest(
+            modelId,
+            messages,
+            new ZaiThinking("disabled"),
+            false,
+            new ZaiResponseFormat(requireJsonObject ? "json_object" : "text"),
+            maxOutputTokens);
+        return JsonSerializer.Serialize(requestBody, LlmJson.Options);
     }
 
     private string ReadApiKey()

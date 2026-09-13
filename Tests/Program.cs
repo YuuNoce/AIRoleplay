@@ -69,7 +69,12 @@ var privatePrompt = ReplyPrompt.Build(UiLanguage.English, false, "", "PRIVATE_AI
     history.GetAiConversationTimelineSnapshot(), game, "hi", promptTime);
 Check(privatePrompt.Any(x => x.Content.Contains("PRIVATE_SECRET")), "Private conversation retains its own history");
 Check(privatePrompt[0].Content.Contains("PRIVATE_AI_NAME"), "Private mode retains AI identity");
-Check(!privatePrompt[0].Content.Contains("valid JSON", StringComparison.Ordinal), "Summary disabled keeps the legacy plain-text response contract");
+Check(privatePrompt[0].Content.Contains("valid JSON", StringComparison.Ordinal) &&
+    privatePrompt[0].Content.Contains("empty string", StringComparison.Ordinal),
+    "Summary disabled requests the unified JSON response contract");
+Check(privatePrompt.Any(message => message.Role == "assistant" &&
+    message.Content.Contains("{\"reply\":\"PRIVATE_AI_REPLY\",\"summary\":\"\"}", StringComparison.Ordinal)),
+    "Private assistant history uses the unified JSON response contract");
 var summaryPrompt = ReplyPrompt.Build(UiLanguage.English, false, "PROFILE", "AI", "", "", GameChatPostChannel.Say,
     history.GetAiConversationTimelineSnapshot(), game, "hi", promptTime, "OLDER_SUMMARY", requestUpdatedSummary: true);
 var summaryPromptText = string.Join("\n", summaryPrompt.Select(message => message.Content));
@@ -81,6 +86,9 @@ Check(ReplyWithSummaryParser.TryParse("```json\n{\"reply\":\"hello\",\"summary\"
     "Accept a fenced JSON response without exposing the wrapper");
 Check(!ReplyWithSummaryParser.TryParse("not json", out _) &&
     !ReplyWithSummaryParser.TryParse("{\"reply\":\"hello\"}", out _), "Reject responses that could leak a missing or malformed summary");
+var zaiJsonRequest = ZaiClient.BuildRequestJson("model", [new LlmChatMessage("user", "hi")], 512, requireJsonObject: true);
+Check(zaiJsonRequest.Contains("\"response_format\":{\"type\":\"json_object\"}", StringComparison.Ordinal),
+    "Z.ai requests JSON output for the unified response contract");
 history.SetConversationSummary("private:1", "PRIVATE_SUMMARY");
 history.SetConversationSummary("public:Tell:person:OTHER PLAYER@EXAMPLE", "PUBLIC_SUMMARY");
 history.ClearConversationSummaries(isPublic: false);
