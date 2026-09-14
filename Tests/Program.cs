@@ -109,6 +109,28 @@ Check(orderedText.IndexOf("GAME_FIRST", StringComparison.Ordinal) < orderedText.
     orderedText.IndexOf("AI_FIRST", StringComparison.Ordinal) < orderedText.IndexOf("GAME_LATER", StringComparison.Ordinal) &&
     orderedText.IndexOf("GAME_LATER", StringComparison.Ordinal) < orderedText.IndexOf("USER_LATEST", StringComparison.Ordinal),
     "Game logs and private conversation are merged chronologically");
+var boundedTimeline = new ChatHistory();
+boundedTimeline.SetTimelineLimit(4);
+boundedTimeline.AddUserMessage("OLD_USER", timelineStart.AddSeconds(1));
+boundedTimeline.AddAssistantMessage("OLD_AI", timelineStart.AddSeconds(2));
+boundedTimeline.AddGameChatLine("NPCDialogue", "NPC", "NEW_GAME_1", 4, timelineStart.AddSeconds(3));
+boundedTimeline.AddGameChatLine("NPCDialogue", "NPC", "NEW_GAME_2", 4, timelineStart.AddSeconds(4));
+boundedTimeline.AddGameChatLine("NPCDialogue", "NPC", "NEW_GAME_3", 4, timelineStart.AddSeconds(5));
+boundedTimeline.AddGameChatLine("NPCDialogue", "NPC", "NEW_GAME_4", 4, timelineStart.AddSeconds(6));
+var boundedPrivatePrompt = ReplyPrompt.Build(UiLanguage.English, false, "", "", "", "", GameChatPostChannel.Say,
+    boundedTimeline.GetAiConversationTimelineSnapshot(), boundedTimeline.GetRecentGameChatSnapshot(), "", timelineStart.AddSeconds(7),
+    maxTimelineEntries: 4);
+var boundedPrivateText = string.Join("\n", boundedPrivatePrompt.Select(message => message.Content));
+Check(!boundedPrivateText.Contains("OLD_USER") && !boundedPrivateText.Contains("OLD_AI") &&
+    boundedPrivateText.Contains("NEW_GAME_1") && boundedPrivateText.Contains("NEW_GAME_4"),
+    "Private context takes the newest entries from one chronological window");
+var boundedPublicPrompt = ReplyPrompt.Build(UiLanguage.English, true, "", "", "", "", GameChatPostChannel.Say,
+    boundedTimeline.GetAiConversationTimelineSnapshot(), boundedTimeline.GetRecentGameChatSnapshot(), "", timelineStart.AddSeconds(7),
+    maxTimelineEntries: 4);
+var boundedPublicText = string.Join("\n", boundedPublicPrompt.Select(message => message.Content));
+Check(boundedPublicText.Contains("NEW_GAME_1") && boundedPublicText.Contains("NEW_GAME_4") &&
+    !boundedPublicText.Contains("OLD_AI"),
+    "Public context keeps its full game-log window without private history");
 history.Clear();
 Check(history.GetAiConversationSnapshot().Count == 0 && history.GetRecentGameChatSnapshot().Count == 0 &&
     history.GetConversationSummary("public:Tell:person:OTHER PLAYER@EXAMPLE") == "", "Session reset clears histories and summaries");

@@ -715,7 +715,7 @@ public class MainWindow : Window, IDisposable
             configuration.GetLimitedAssistantDisplayName(), plugin.PlayerContextBuilder.BuildLocalPlayerContext(configuration.Language),
             recipient, channel,
             plugin.ChatHistory.GetAiConversationTimelineSnapshot(), GetGameContext(), text, requestTimestamp,
-            conversationSummary, requestUpdatedSummary);
+            conversationSummary, requestUpdatedSummary, configuration.GetClampedGameChatLineLimit());
 
     private string GetConversationSummaryScope(
         TalkMode requestMode, ReplyTargetMode requestTargetMode,

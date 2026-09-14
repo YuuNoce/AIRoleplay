@@ -6,12 +6,11 @@ namespace AIRoleplay;
 
 public sealed class ChatHistory
 {
-    private const int MaxAiMessages = 40;
-
     private readonly object syncRoot = new();
     private readonly List<GameChatLine> recentGameChat = new();
     private readonly List<TimedLlmChatMessage> aiConversationHistory = new();
     private readonly Dictionary<string, string> conversationSummaries = new(StringComparer.Ordinal);
+    private int timelineLimit = Configuration.DefaultGameChatLineLimit;
     private long nextTimelineSequence;
 
     public void Clear()
@@ -41,20 +40,24 @@ public sealed class ChatHistory
 
         lock (syncRoot)
         {
+            timelineLimit = Math.Max(0, maxLines);
             var line = new GameChatLine(
                 channel, sender, message, timestamp ?? DateTimeOffset.UtcNow, ++nextTimelineSequence,
                 senderAddress?.Trim() ?? "");
             recentGameChat.Add(line);
-            TrimToLimit(recentGameChat, maxLines);
+            TrimToLimit(recentGameChat, timelineLimit);
+            TrimToLimit(aiConversationHistory, timelineLimit);
             return line;
         }
     }
 
-    public void TrimGameChatToLimit(int maxLines)
+    public void SetTimelineLimit(int maxEntries)
     {
         lock (syncRoot)
         {
-            TrimToLimit(recentGameChat, maxLines);
+            timelineLimit = Math.Max(0, maxEntries);
+            TrimToLimit(recentGameChat, timelineLimit);
+            TrimToLimit(aiConversationHistory, timelineLimit);
         }
     }
 
@@ -70,7 +73,9 @@ public sealed class ChatHistory
     {
         lock (syncRoot)
         {
-            return recentGameChat.Select(line => line.ToPromptLine()).ToList();
+            return OrderByTimeline(recentGameChat)
+                .Select(line => line.ToPromptLine())
+                .ToList();
         }
     }
 
@@ -78,7 +83,7 @@ public sealed class ChatHistory
     {
         lock (syncRoot)
         {
-            return recentGameChat
+            return OrderByTimeline(recentGameChat)
                 .Select(line => line.Sender)
                 .Where(sender => !string.IsNullOrWhiteSpace(sender))
                 .Distinct()
@@ -142,19 +147,21 @@ public sealed class ChatHistory
         lock (syncRoot)
         {
             aiConversationHistory.Add(new TimedLlmChatMessage(role, content, timestamp ?? DateTimeOffset.UtcNow, ++nextTimelineSequence));
-            TrimToLimit(aiConversationHistory, MaxAiMessages);
+            TrimToLimit(aiConversationHistory, timelineLimit);
         }
     }
 
     private static IOrderedEnumerable<T> OrderByTimeline<T>(IEnumerable<T> messages) where T : ITimelineEntry =>
         messages.OrderBy(message => message.Timestamp).ThenBy(message => message.Sequence);
 
-    private static void TrimToLimit<T>(List<T> list, int limit)
+    private static void TrimToLimit<T>(List<T> entries, int limit) where T : ITimelineEntry
     {
-        while (list.Count > limit)
-        {
-            list.RemoveAt(0);
-        }
+        entries.Sort((left, right) =>
+            left.Timestamp != right.Timestamp
+                ? left.Timestamp.CompareTo(right.Timestamp)
+                : left.Sequence.CompareTo(right.Sequence));
+        if (entries.Count > limit)
+            entries.RemoveRange(0, entries.Count - limit);
     }
 }
 

@@ -473,7 +473,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text(T("Game Chat Context", "ゲームチャット文脈"));
 
         ImGui.SetNextItemWidth(GetContentItemWidth(SmallNumberInputWidth));
-        if (ImGui.InputInt(T("Max chat lines sent to AI##AIRoleplayCapturedLines", "AIへ送る最大チャット行数##AIRoleplayCapturedLines"), ref draftGameChatLineLimit))
+        if (ImGui.InputInt(T("Max timeline entries sent to AI##AIRoleplayCapturedLines", "AIへ送る最大履歴件数##AIRoleplayCapturedLines"), ref draftGameChatLineLimit))
         {
             draftGameChatLineLimit = Math.Clamp(
                 draftGameChatLineLimit,
@@ -482,8 +482,8 @@ public class ConfigWindow : Window, IDisposable
         }
 
         ImGui.TextDisabled(T(
-            $"{Configuration.MinGameChatLineLimit}-{Configuration.MaxGameChatLineLimit} recent messages",
-            $"直近 {Configuration.MinGameChatLineLimit}-{Configuration.MaxGameChatLineLimit} 件"));
+            $"{Configuration.MinGameChatLineLimit}-{Configuration.MaxGameChatLineLimit} recent game, user, and AI entries",
+            $"ゲームログ・ユーザー発言・AI返答を合わせた直近 {Configuration.MinGameChatLineLimit}-{Configuration.MaxGameChatLineLimit} 件"));
 
         ImGui.Text(T("Chat channels sent to AI", "AIへ送るチャットチャンネル"));
         ImGui.Checkbox(T("Say", "Say"), ref draftCaptureSay);
@@ -679,7 +679,7 @@ public class ConfigWindow : Window, IDisposable
         configuration.CaptureOrchestrion = draftCaptureOrchestrion;
         configuration.Language = draftLanguage;
         configuration.Save();
-        chatHistory.TrimGameChatToLimit(configuration.GetClampedGameChatLineLimit());
+        chatHistory.SetTimelineLimit(configuration.GetClampedGameChatLineLimit());
 
         if (!wasPersonalAutoResponseEnabled && configuration.EnablePersonalAutoResponseByChatLines)
         {

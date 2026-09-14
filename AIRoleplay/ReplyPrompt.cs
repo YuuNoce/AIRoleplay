@@ -11,7 +11,8 @@ public static class ReplyPrompt
         UiLanguage language, bool isPublic, string profile, string assistantName, string playerContext,
         string recipient, GameChatPostChannel channel,
         IReadOnlyList<TimedLlmChatMessage> privateHistory, IReadOnlyList<GameChatLine> gameLog, string text,
-        DateTimeOffset requestTimestamp, string conversationSummary = "", bool requestUpdatedSummary = false)
+        DateTimeOffset requestTimestamp, string conversationSummary = "", bool requestUpdatedSummary = false,
+        int maxTimelineEntries = Configuration.DefaultGameChatLineLimit)
     {
         string T(string english, string japanese) => UiText.T(language, english, japanese);
         var instruction = isPublic
@@ -70,10 +71,12 @@ public static class ReplyPrompt
 
         var messages = new List<LlmChatMessage> { new("system", instruction) };
         var wroteConversationLogHeader = false;
-        foreach (var entry in timeline
-                     .Where(message => message.Timestamp <= requestTimestamp)
-                     .OrderBy(message => message.Timestamp)
-                     .ThenBy(message => message.Sequence))
+        var orderedTimeline = timeline
+            .Where(message => message.Timestamp <= requestTimestamp)
+            .OrderBy(message => message.Timestamp)
+            .ThenBy(message => message.Sequence)
+            .TakeLast(Math.Max(0, maxTimelineEntries));
+        foreach (var entry in orderedTimeline)
         {
             var content = entry.Role == "assistant"
                 ? JsonSerializer.Serialize(new ReplyWithSummary(entry.Content, ""), LlmJson.Options)

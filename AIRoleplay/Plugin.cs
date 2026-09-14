@@ -49,6 +49,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         var shouldSaveConfiguration = Configuration.Migrate();
+        ChatHistory.SetTimelineLimit(Configuration.GetClampedGameChatLineLimit());
         if (Configuration.PostReplyAssistToGameChat)
         {
             Configuration.PostReplyAssistToGameChat = false;
